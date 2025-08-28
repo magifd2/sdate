@@ -107,3 +107,41 @@ func TestConvertFormat(t *testing.T) {
 		})
 	}
 }
+
+func TestWeekSnap(t *testing.T) {
+	// Test cases for different days of the week (Sunday is the start of the week)
+	tests := []struct {
+		name     string
+		baseTime time.Time
+		want     time.Time
+	}{
+		{
+			name:     "Monday",
+			baseTime: time.Date(2023, 10, 23, 10, 0, 0, 0, time.UTC), // Monday
+			want:     time.Date(2023, 10, 22, 0, 0, 0, 0, time.UTC),
+		},
+		{
+			name:     "Wednesday",
+			baseTime: time.Date(2023, 10, 25, 10, 0, 0, 0, time.UTC), // Wednesday
+			want:     time.Date(2023, 10, 22, 0, 0, 0, 0, time.UTC),
+		},
+		{
+			name:     "Sunday",
+			baseTime: time.Date(2023, 10, 29, 10, 0, 0, 0, time.UTC), // Sunday
+			want:     time.Date(2023, 10, 29, 0, 0, 0, 0, time.UTC),
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			spec := &SplunkLikeTimeSpec{Snap: "@w"}
+			got, err := applyOperation(tt.baseTime, spec)
+			if err != nil {
+				t.Fatalf("applyOperation() returned an error: %v", err)
+			}
+			if !got.Equal(tt.want) {
+				t.Errorf("applyOperation() with snap '@w' on %s: got %v, want %v", tt.name, got, tt.want)
+			}
+		})
+	}
+}

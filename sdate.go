@@ -30,7 +30,7 @@ var ErrInvalidFormat = errors.New("invalid format: must be in the format of [+|-
 func parseInput(input string) (*SplunkLikeTimeSpec, error) {
 	// Regular expression to parse relative time and snap operations.
 	// Examples: -1d@d, @d-1d, +5h
-	re := regexp.MustCompile(`^((?P<rel>[\+\-]\d+[smhdwMy])|(?P<snap>@[smhdwMy]))?((?P<op>[\+\-]\d+[smhdwMy])|(?P<snap2>@[smhdwMy]))?`)
+	re := regexp.MustCompile(`^((?P<rel>[\+\-]\d+[smhdwMy])|(?P<snap>@[smhdwMy]))?((?P<op>[\+\-]\d+[smhdwMy])|(?P<snap2>@[smhdwMy]))?$`) // Added $ to match the whole string
 	matches := re.FindStringSubmatch(input)
 	if matches == nil || len(matches) < 6 {
 		return nil, ErrInvalidFormat
@@ -81,12 +81,8 @@ func applyOperation(t time.Time, spec *SplunkLikeTimeSpec) (time.Time, error) {
 		case "d":
 			result = time.Date(result.Year(), result.Month(), result.Day(), 0, 0, 0, 0, result.Location())
 		case "w":
-			// Assume Monday is the start of the week
-			weekday := result.Weekday()
-			if weekday == time.Sunday {
-				weekday = time.Monday + 6
-			}
-			daysToSubtract := int(weekday - time.Monday)
+			// Snap to the beginning of the week (Sunday)
+			daysToSubtract := int(result.Weekday())
 			result = time.Date(result.Year(), result.Month(), result.Day(), 0, 0, 0, 0, result.Location()).AddDate(0, 0, -daysToSubtract)
 		case "M":
 			result = time.Date(result.Year(), result.Month(), 1, 0, 0, 0, 0, result.Location())
@@ -180,7 +176,7 @@ func helpMessage() string {
 		"\tm: minutes\n" +
 		"\th: hours\n" +
 		"\td: days\n" +
-		"\tw: weeks (Monday is the start of the week)\n" +
+		"\tw: weeks (Sunday is the start of the week)\n" +
 		"\tM: months\n" +
 		"\ty: years\n\n" +
 		"\t--base <time>\n" +

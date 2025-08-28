@@ -1,0 +1,17 @@
+# Changelog
+
+All notable changes to this project will be documented in this file.
+
+The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
+and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
+
+## [1.0.0] - 2025-08-28
+
+### Added
+- Initial release of `sdate`.
+- Command-line tool for Splunk-like time manipulation.
+- Support for relative time and snap operations.
+- Flexible output formatting, including UNIX timestamp.
+- Timezone handling for base time and output.
+- Cross-compilation and macOS universal binary support via Makefile.
+- Unit tests for core logic.

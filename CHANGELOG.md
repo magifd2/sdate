@@ -13,5 +13,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Support for relative time and snap operations.
 - Flexible output formatting, including UNIX timestamp.
 - Timezone handling for base time and output.
-- Cross-compilation and macOS universal binary support via Makefile.
 - Unit tests for core logic.
+
+### Changed
+- Improved `Makefile` to provide comprehensive build, test, and packaging targets.
+- `make package` now builds and archives for Linux, Windows, and macOS (Universal Binary).

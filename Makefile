@@ -15,7 +15,7 @@ BUILD_DATE := $(shell date -u +'%Y-%m-%dT%H:%M:%SZ')
 LDFLAGS := -ldflags="-X 'main.version=$(VERSION) (commit: $(COMMIT), build_date: $(BUILD_DATE))'"
 
 # Cross-compilation targets
-GOOS_LIST := linux windows darwin
+GOOS_LIST := linux windows
 GOARCH_LIST := amd64
 
 .PHONY: all build clean install test lint release package universal-mac
@@ -40,8 +40,9 @@ clean:
 	@rm -f $(TARGET)
 	@rm -rf $(BIN_DIR)
 
+# This target is for linux and windows only now
 release: clean
-	@echo "Building release binaries..."
+	@echo "Building release binaries for Linux and Windows..."
 	@mkdir -p $(BIN_DIR)
 	@for goos in $(GOOS_LIST); do \
 		for goarch in $(GOARCH_LIST); do \
@@ -57,6 +58,7 @@ release: clean
 
 package: release
 	@echo "Creating release packages..."
+	@# Package Linux and Windows
 	@for platform_dir in $(BIN_DIR)/*; do \
 		if [ -d "$$platform_dir" ]; then \
 			PLATFORM=$$(basename "$$platform_dir"); \
@@ -79,15 +81,33 @@ package: release
 			); \
 		fi; \
 	done
+	
+	@# Build and package macOS Universal
+	@echo "--> Building and Packaging for macOS Universal (amd64+arm64)"
+	@$(eval PLATFORM := darwin-universal)
+	@$(eval PKG_NAME := $(TARGET)-$(VERSION)-$(PLATFORM))
+	@$(eval PKG_DIR := $(BIN_DIR)/$(PKG_NAME))
+	@$(eval AMD64_BIN := $(BIN_DIR)/darwin-amd64/$(TARGET))
+	@$(eval ARM64_BIN := $(BIN_DIR)/darwin-arm64/$(TARGET))
+	@mkdir -p $(dir $(AMD64_BIN)) $(dir $(ARM64_BIN)) $(PKG_DIR)
+	@GOOS=darwin GOARCH=amd64 go build $(LDFLAGS) -o $(AMD64_BIN) .
+	@GOOS=darwin GOARCH=arm64 go build $(LDFLAGS) -o $(ARM64_BIN) .
+	@lipo -create -output $(PKG_DIR)/$(TARGET) $(AMD64_BIN) $(ARM64_BIN)
+	@cp README.md README.ja.md LICENSE $(PKG_DIR)/
+	@cd $(BIN_DIR) && tar -czf "$(PKG_NAME).tar.gz" "$(PKG_NAME)"
+	@rm -r $(PKG_DIR) $(dir $(AMD64_BIN)) $(dir $(ARM64_BIN))
+
 	@echo "Packaging complete. Archives are in $(BIN_DIR)"
 
-universal-mac: clean
+# This target is now for convenience if you only want the universal binary
+universal-mac: 
 	@echo "Building macOS universal binary..."
-	@mkdir -p $(BIN_DIR)/darwin-amd64 $(BIN_DIR)/darwin-arm64
-	@GOOS=darwin GOARCH=amd64 go build $(LDFLAGS) -o $(BIN_DIR)/darwin-amd64/$(TARGET) .
-	@GOOS=darwin GOARCH=arm64 go build $(LDFLAGS) -o $(BIN_DIR)/darwin-arm64/$(TARGET) .
-	@lipo -create -output $(BIN_DIR)/$(TARGET)-darwin-universal $(BIN_DIR)/darwin-amd64/$(TARGET) $(BIN_DIR)/darwin-arm64/$(TARGET)
-	@echo "Universal binary created at $(BIN_DIR)/$(TARGET)-darwin-universal"
+	@mkdir -p $(BIN_DIR)/darwin-universal
+	@GOOS=darwin GOARCH=amd64 go build $(LDFLAGS) -o $(BIN_DIR)/darwin-amd64-temp .
+	@GOOS=darwin GOARCH=arm64 go build $(LDFLAGS) -o $(BIN_DIR)/darwin-arm64-temp .
+	@lipo -create -output $(BIN_DIR)/darwin-universal/$(TARGET) $(BIN_DIR)/darwin-amd64-temp $(BIN_DIR)/darwin-arm64-temp
+	@rm $(BIN_DIR)/darwin-amd64-temp $(BIN_DIR)/darwin-arm64-temp
+	@echo "Universal binary created at $(BIN_DIR)/darwin-universal/$(TARGET)"
 
 install: build
 	@echo "Installing $(TARGET) to $(shell go env GOPATH)/bin..."
